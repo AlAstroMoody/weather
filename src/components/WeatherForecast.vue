@@ -310,39 +310,48 @@ function getDateFull(day: ForecastDay): string {
 
 @media (max-width: 768px) {
   .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
   }
 
   .forecast-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
+    gap: 8px;
   }
 
   .forecast-card {
-    padding: 20px;
-    min-height: 160px;
+    padding: 12px;
+    min-height: 120px;
   }
 
   .forecast-icon {
-    font-size: 2.2rem;
+    font-size: 1.8rem;
   }
 
   .temp-max {
-    font-size: 1.4rem;
+    font-size: 1.1rem;
   }
 
   .temp-min {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 
   .date-day {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
   }
 
   .date-full {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+  }
+
+  .forecast-condition {
+    font-size: 0.7rem;
   }
 }
 

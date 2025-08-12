@@ -306,54 +306,63 @@ const weatherIcon = computed(() => {
 /* Адаптивность */
 @media (max-width: 768px) {
   .weather-card {
-    padding: 24px;
+    padding: 15px;
+    margin-bottom: 10px;
   }
 
   .weather-main {
-    flex-direction: column;
-    text-align: center;
-    gap: 20px;
+    flex-direction: row;
+    text-align: left;
+    gap: 15px;
   }
 
   .weather-info {
-    gap: 15px;
+    gap: 10px;
   }
 
   .main-info-section {
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
   }
 
   .weather-visual {
-    min-width: auto;
+    min-width: 80px;
   }
 
   .weather-icon {
-    font-size: 4rem;
+    font-size: 2.5rem;
   }
 
   .city-name {
-    font-size: 1.8rem;
+    font-size: 1.3rem;
   }
 
   .temp-value {
-    font-size: 3.5rem;
+    font-size: 2.5rem;
   }
 
   .temp-unit {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
+  }
+
+  .condition {
+    font-size: 0.9rem;
+  }
+
+  .feels-like {
+    font-size: 0.8rem;
   }
 
   .details-row {
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
   }
 
   .detail-item {
-    flex: 1 1 calc(50% - 6px);
-    min-width: 140px;
-    padding: 14px;
+    flex: 1 1 calc(50% - 4px);
+    min-width: 120px;
+    padding: 10px;
   }
 }
 

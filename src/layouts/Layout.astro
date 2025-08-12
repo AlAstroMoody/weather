@@ -71,6 +71,21 @@ const {
         box-sizing: border-box;
       }
 
+      /* Предотвращение белого фона при скролле на мобильных */
+      @media screen and (max-width: 768px) {
+        body {
+          background: var(--bg-primary) !important;
+        }
+        
+        html {
+          background: var(--bg-primary) !important;
+        }
+        
+        .container {
+          background: var(--bg-primary) !important;
+        }
+      }
+
       body {
         font-family:
           "Inter",
@@ -79,16 +94,67 @@ const {
           "Segoe UI",
           Roboto,
           sans-serif;
-        background: transparent;
+        background: var(--bg-primary);
         color: var(--text-primary);
         min-height: 100vh;
         line-height: 1.6;
+        overflow-x: hidden;
+      }
+
+      html {
+        background: var(--bg-primary);
+        overflow-x: hidden;
       }
 
       .container {
         max-width: 1200px;
         margin: 0 auto;
         padding: 0 20px;
+        background: var(--bg-primary);
+        min-height: 100vh;
+      }
+
+      /* Мобильная оптимизация */
+      @media screen and (max-width: 768px) {
+        .container {
+          padding: 0 10px;
+          max-width: 100%;
+        }
+        
+        body {
+          font-size: 14px;
+        }
+        
+        h1 {
+          font-size: 1.5rem !important;
+          margin-bottom: 0.5rem !important;
+        }
+        
+        h2 {
+          font-size: 1.2rem !important;
+          margin-bottom: 0.5rem !important;
+        }
+        
+        .weather-app {
+          padding: 10px 0 !important;
+        }
+        
+        .app-header {
+          margin-bottom: 10px !important;
+        }
+        
+        .weather-card {
+          margin-bottom: 15px !important;
+          padding: 15px !important;
+        }
+        
+        .forecast-grid {
+          gap: 10px !important;
+        }
+        
+        .forecast-card {
+          padding: 12px !important;
+        }
       }
 
       /* Neumorphism эффекты */

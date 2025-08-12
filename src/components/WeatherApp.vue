@@ -196,22 +196,37 @@ onMounted(async () => {
 /* Адаптивность */
 @media (max-width: 768px) {
   .weather-app {
-    padding: 15px;
+    padding: 10px 5px;
+    min-height: 100vh;
   }
 
   .app-controls {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 5px 0;
   }
 
   .app-title {
-    font-size: 1.6rem;
-    justify-content: center;
+    font-size: 1.3rem;
+    justify-content: flex-start;
+    gap: 8px;
   }
 
   .title-icon {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
+  }
+
+  .loading-container {
+    min-height: 200px;
+    gap: 15px;
+  }
+
+  .loading-container .loading-spinner {
+    width: 30px;
+    height: 30px;
+    border-width: 3px;
   }
 }
 </style>
