@@ -1,4 +1,4 @@
-const CACHE_NAME = "weather-app-v4";
+const CACHE_NAME = "weather-app-v5";
 
 // Определяем базовый путь динамически
 const isGithubPages = self.location.hostname.includes("github.io");
