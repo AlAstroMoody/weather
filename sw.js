@@ -1,10 +1,11 @@
 const CACHE_NAME = "weather-app-v1";
+const BASE_PATH = "/weather";
 const urlsToCache = [
-  "/",
-  "/manifest.json",
-  "/favicon.svg",
-  "/raindrop-fx-master/bundle/index.js",
-  "/rain.webp",
+  BASE_PATH + "/",
+  BASE_PATH + "/manifest.json",
+  BASE_PATH + "/favicon.svg",
+  BASE_PATH + "/raindrop-fx-master/bundle/index.js",
+  BASE_PATH + "/rain.webp",
 ];
 
 self.addEventListener("install", (event) => {
