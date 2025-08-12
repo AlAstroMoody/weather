@@ -20,7 +20,7 @@
               ? "Определяем..."
               : statusType === "success"
               ? "Найдено!"
-              : "Моё местоположение"
+              : "Местоположение"
           }}
         </span>
       </div>
@@ -130,8 +130,10 @@ async function getLocation() {
   box-shadow: var(--neumorphism);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   position: relative;
   overflow: hidden;
+  height: 44px;
 }
 
 .location-button::before {
@@ -273,8 +275,44 @@ async function getLocation() {
 /* Адаптивность */
 @media (max-width: 768px) {
   .location-button {
-    width: 100%;
+    width: auto;
+    min-width: 140px;
     justify-content: center;
+    height: 40px;
+  }
+
+  .button-content {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .button-text {
+    font-size: 0.8rem;
+  }
+
+  .button-icon {
+    font-size: 0.9rem;
+    width: 18px;
+    height: 18px;
+  }
+
+  .location-status {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .location-button {
+    min-width: 120px;
+    height: 36px;
+  }
+
+  .button-content {
+    padding: 6px 10px;
+  }
+
+  .button-text {
+    font-size: 0.75rem;
   }
 }
 </style>

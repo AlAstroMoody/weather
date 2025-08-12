@@ -5,8 +5,8 @@ import vue from "@astrojs/vue";
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://alastromoody.github.io",
-  base: "/weather",
+  site: "http://localhost:4321",
+  base: "/",
   integrations: [vue()],
   devToolbar: {
     enabled: true,

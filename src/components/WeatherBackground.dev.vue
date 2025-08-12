@@ -25,9 +25,7 @@ async function loadRaindropFX() {
     }
 
     const script = document.createElement("script");
-    const isDev = import.meta.env.DEV;
-    const basePath = isDev ? "" : "/weather";
-    script.src = `${basePath}/raindrop-fx-master/bundle/index.js`;
+    script.src = "/raindrop-fx-master/bundle/index.js";
     script.onload = () => {
       if (window.RaindropFX) {
         resolve(window.RaindropFX);
@@ -50,11 +48,9 @@ function initRaindropFX() {
   canvas.height = rect.height;
 
   if (window.RaindropFX) {
-    const isDev = import.meta.env.DEV;
-    const basePath = isDev ? "" : "/weather";
     raindropFx = new window.RaindropFX({
       canvas: canvas,
-      background: `${basePath}/rain.webp`,
+      background: "/rain.webp",
     });
 
     window.addEventListener("resize", handleResize);
@@ -114,7 +110,6 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   z-index: -1;
-  overflow: hidden;
   pointer-events: none;
 }
 
@@ -124,18 +119,16 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 9999;
   pointer-events: none;
 }
 
 #canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  pointer-events: none;
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 </style>
-
-declare global { interface Window { RaindropFX: any; } }

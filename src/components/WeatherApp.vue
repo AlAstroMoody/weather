@@ -1,6 +1,11 @@
 <template>
   <div class="weather-app animate-fade-in">
-    <WeatherBackground :weather-type="currentWeatherType" client:only />
+    <WeatherBackgroundDev
+      v-if="isDev"
+      :weather-type="currentWeatherType"
+      client:only
+    />
+    <WeatherBackground v-else :weather-type="currentWeatherType" client:only />
 
     <div class="app-controls">
       <div class="app-header">
@@ -34,6 +39,7 @@ import LocationButton from "./LocationButton.vue";
 import WeatherCard from "./WeatherCard.vue";
 import WeatherForecast from "./WeatherForecast.vue";
 import WeatherBackground from "./WeatherBackground.vue";
+import WeatherBackgroundDev from "./WeatherBackground.dev.vue";
 import { getCurrentWeather, getWeatherForecast } from "../lib/weatherApi";
 
 const currentWeather = ref<any>(null);
@@ -45,6 +51,8 @@ const currentWeatherType = computed(() => {
   if (!currentWeather.value) return "sunny";
   return currentWeather.value.icon || "sunny";
 });
+
+const isDev = computed(() => import.meta.env.DEV);
 
 async function updateWeatherData(weatherData: any) {
   currentWeather.value = weatherData;
@@ -63,7 +71,7 @@ async function updateWeatherData(weatherData: any) {
     const cityName = weatherData.city;
     forecast.value = await getWeatherForecast(cityName, 10);
   } catch (err) {
-    console.error("Ошибка обновления прогноза:", err);
+    // Ошибка обновления прогноза
   } finally {
     isUpdatingForecast.value = false;
   }
@@ -73,24 +81,28 @@ onMounted(async () => {
   try {
     // Проверяем сохраненное местоположение
     const savedLocation = localStorage.getItem("lastLocation");
+    const city = savedLocation ? JSON.parse(savedLocation).city : "Красноярск";
 
-    if (savedLocation) {
-      const locationData = JSON.parse(savedLocation);
-      currentWeather.value = await getCurrentWeather(locationData.city);
-      forecast.value = await getWeatherForecast(locationData.city, 10);
-    } else {
-      // Загружаем Красноярск по умолчанию
-      currentWeather.value = await getCurrentWeather("Красноярск");
-      forecast.value = await getWeatherForecast("Красноярск", 10);
-    }
+    // Загружаем данные параллельно
+    const [weatherData, forecastData] = await Promise.all([
+      getCurrentWeather(city),
+      getWeatherForecast(city, 10),
+    ]);
+
+    currentWeather.value = weatherData;
+    forecast.value = forecastData;
   } catch (err) {
-    console.error("Ошибка загрузки погоды:", err);
-    // В случае ошибки загружаем Красноярск
+    // Ошибка загрузки погоды - пробуем Красноярск
     try {
-      currentWeather.value = await getCurrentWeather("Красноярск");
-      forecast.value = await getWeatherForecast("Красноярск", 10);
+      const [weatherData, forecastData] = await Promise.all([
+        getCurrentWeather("Красноярск"),
+        getWeatherForecast("Красноярск", 10),
+      ]);
+
+      currentWeather.value = weatherData;
+      forecast.value = forecastData;
     } catch (fallbackErr) {
-      console.error("Ошибка загрузки погоды по умолчанию:", fallbackErr);
+      // Ошибка загрузки погоды по умолчанию
     }
   } finally {
     isInitialLoading.value = false;
@@ -153,6 +165,7 @@ onMounted(async () => {
   margin-bottom: 15px;
   padding: 10px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 44px;
 }
 
 .app-header {
@@ -168,7 +181,9 @@ onMounted(async () => {
   transition: opacity 0.3s ease;
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
+  line-height: 1;
 }
 
 .app-title:hover {
@@ -202,16 +217,17 @@ onMounted(async () => {
 
   .app-controls {
     flex-direction: row;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     margin-bottom: 10px;
     padding: 5px 0;
+    min-height: 40px;
   }
 
   .app-title {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     justify-content: flex-start;
-    gap: 8px;
+    gap: 6px;
   }
 
   .title-icon {
@@ -227,6 +243,27 @@ onMounted(async () => {
     width: 30px;
     height: 30px;
     border-width: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .weather-app {
+    padding: 8px 3px;
+  }
+
+  .app-controls {
+    gap: 6px;
+    margin-bottom: 8px;
+    min-height: 36px;
+  }
+
+  .app-title {
+    font-size: 1.1rem;
+    gap: 4px;
+  }
+
+  .title-icon {
+    font-size: 1rem;
   }
 }
 </style>
