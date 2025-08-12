@@ -1,4 +1,4 @@
-var RaindropFX = (() => {
+var WeatherFX = (() => {
   var ur = Object.defineProperty;
   var Hi = Object.getOwnPropertyDescriptor;
   var Wi = (t, e) => () => (
