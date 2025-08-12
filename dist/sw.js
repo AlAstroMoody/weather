@@ -1,10 +1,14 @@
-const CACHE_NAME = "weather-app-v1";
-const BASE_PATH = "/weather";
+const CACHE_NAME = "weather-app-v4";
+
+// Определяем базовый путь динамически
+const isGithubPages = self.location.hostname.includes("github.io");
+const BASE_PATH = isGithubPages ? "/weather" : "";
+
 const urlsToCache = [
   BASE_PATH + "/",
   BASE_PATH + "/manifest.json",
   BASE_PATH + "/favicon.svg",
-  BASE_PATH + "/weather-fx-master/bundle/index.js",
+  BASE_PATH + "/weather.js",
   BASE_PATH + "/rain.webp",
 ];
 
