@@ -14,65 +14,77 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-let raindropFx: any = null;
+let weatherFx: any = null;
 let canvas: HTMLCanvasElement | null = null;
 
-async function loadRaindropFX() {
+async function loadWeatherFX() {
   return new Promise((resolve, reject) => {
-    if (window.RaindropFX) {
-      resolve(window.RaindropFX);
+    if (window.WeatherFX) {
+      resolve(window.WeatherFX);
       return;
     }
 
     const script = document.createElement("script");
-    const isDev = import.meta.env.DEV;
-    const basePath = isDev ? "" : "/weather";
-    script.src = `${basePath}/raindrop-fx-master/bundle/index.js`;
+    const isGithubPages = window.location.hostname.includes("github.io");
+    const basePath = isGithubPages ? "/weather" : "";
+    script.src = `${basePath}/weather.js`;
+
+    // Добавляем таймаут для предотвращения бесконечного ожидания
+    const timeout = setTimeout(() => {
+      reject(new Error("WeatherFX load timeout"));
+    }, 10000);
+
     script.onload = () => {
-      if (window.RaindropFX) {
-        resolve(window.RaindropFX);
+      clearTimeout(timeout);
+      if (window.WeatherFX) {
+        resolve(window.WeatherFX);
       } else {
-        reject(new Error("RaindropFX not found"));
+        reject(new Error("WeatherFX not found"));
       }
     };
-    script.onerror = () => reject(new Error("Failed to load RaindropFX"));
+
+    script.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error("Failed to load WeatherFX"));
+    };
+
     document.head.appendChild(script);
   });
 }
 
-function initRaindropFX() {
+async function initWeatherFX() {
   if (!canvas) {
     return;
   }
 
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
+  try {
+    const WeatherFXClass = (await loadWeatherFX()) as any;
+    const isGithubPages = window.location.hostname.includes("github.io");
+    const basePath = isGithubPages ? "/weather" : "";
 
-  if (window.RaindropFX) {
-    const isDev = import.meta.env.DEV;
-    const basePath = isDev ? "" : "/weather";
-    raindropFx = new window.RaindropFX({
+    weatherFx = new WeatherFXClass({
       canvas: canvas,
       background: `${basePath}/rain.webp`,
     });
 
     window.addEventListener("resize", handleResize);
-    raindropFx.start();
+    await weatherFx.start();
+  } catch (error) {
+    // WeatherFX initialization failed
   }
 }
 
 function handleResize() {
-  if (raindropFx && canvas && raindropFx.resize) {
+  if (weatherFx && canvas && weatherFx.resize) {
     const rect = canvas.getBoundingClientRect();
-    raindropFx.resize(rect.width, rect.height);
+    weatherFx.resize(rect.width, rect.height);
   }
 }
 
-function stopRaindropFX() {
-  if (raindropFx) {
-    raindropFx.stop();
-    raindropFx = null;
+function stopWeatherFX() {
+  if (weatherFx) {
+    weatherFx.stop();
+    weatherFx = null;
   }
   window.removeEventListener("resize", handleResize);
 }
@@ -80,29 +92,76 @@ function stopRaindropFX() {
 watch(
   () => props.weatherType,
   (newType) => {
-    if (!raindropFx) {
-      initRaindropFX();
+    if (!weatherFx) {
+      initWeatherFX();
     }
   }
 );
 
 onMounted(async () => {
   try {
-    await loadRaindropFX();
     canvas = document.getElementById("canvas") as HTMLCanvasElement;
     if (canvas) {
-      // Устанавливаем размеры canvas
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      initRaindropFX();
+      // Определяем производительность устройства
+      const isLowEndDevice = () => {
+        // Проверяем количество ядер CPU
+        const cores = navigator.hardwareConcurrency || 1;
+
+        // Проверяем память (если доступно)
+        const memory = (navigator as any).deviceMemory || 4;
+
+        // Проверяем соединение
+        const connection = (navigator as any).connection;
+        const isSlowConnection =
+          connection &&
+          (connection.effectiveType === "slow-2g" ||
+            connection.effectiveType === "2g" ||
+            connection.effectiveType === "3g");
+
+        return cores <= 2 || memory <= 2 || isSlowConnection;
+      };
+
+      // Загружаем WeatherFX с задержкой только для слабых устройств
+      const isLowEnd = isLowEndDevice();
+
+      // Проверяем, загружена ли уже страница
+      if (document.readyState === "complete") {
+        if (isLowEnd) {
+          setTimeout(async () => {
+            try {
+              await initWeatherFX();
+            } catch (error) {
+              // WeatherFX initialization failed
+            }
+          }, 2000);
+        } else {
+          await initWeatherFX();
+        }
+      } else {
+        window.addEventListener("load", async () => {
+          if (isLowEnd) {
+            setTimeout(async () => {
+              try {
+                await initWeatherFX();
+              } catch (error) {
+                // WeatherFX initialization failed
+              }
+            }, 2000);
+          } else {
+            await initWeatherFX();
+          }
+        });
+      }
     }
   } catch (error) {
-    // Ошибка загрузки RaindropFX
+    // WeatherFX initialization failed
   }
 });
 
 onUnmounted(() => {
-  stopRaindropFX();
+  stopWeatherFX();
 });
 </script>
 
@@ -137,5 +196,3 @@ onUnmounted(() => {
   left: 0;
 }
 </style>
-
-declare global { interface Window { RaindropFX: any; } }

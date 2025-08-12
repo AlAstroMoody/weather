@@ -9,7 +9,7 @@
     "astro": "astro",
     "lint": "eslint . --ext .js,.ts,.vue,.astro",
     "lint:fix": "eslint . --ext .js,.ts,.vue,.astro --fix",
-    "deploy": "mv src/pages/index.astro src/pages/index.dev.astro && mv src/pages/index.prod.astro src/pages/index.astro && mv src/layouts/Layout.astro src/layouts/Layout.dev.astro && mv src/layouts/Layout.prod.astro src/layouts/Layout.astro && npm run build && mv src/pages/index.astro src/pages/index.prod.astro && mv src/pages/index.dev.astro src/pages/index.astro && mv src/layouts/Layout.astro src/layouts/Layout.prod.astro && mv src/layouts/Layout.dev.astro src/layouts/Layout.astro && git add dist -f && git commit -m \"Deploy to production\" && git subtree push --prefix dist origin gh-pages"
+    "deploy": "npm run build && git add dist -f && git commit -m \"Deploy to production\" && git subtree push --prefix dist origin gh-pages"
   },
   "dependencies": {
     "@astrojs/vue": "^5.1.0",

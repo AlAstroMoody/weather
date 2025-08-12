@@ -1,11 +1,6 @@
 <template>
   <div class="weather-app animate-fade-in">
-    <WeatherBackgroundDev
-      v-if="isDev"
-      :weather-type="currentWeatherType"
-      client:only
-    />
-    <WeatherBackground v-else :weather-type="currentWeatherType" client:only />
+    <WeatherBackground :weather-type="currentWeatherType" client:only />
 
     <div class="app-controls">
       <div class="app-header">
@@ -23,9 +18,9 @@
     </div>
 
     <template v-else>
-      <WeatherCard v-show="currentWeather" :weather="currentWeather" />
+      <WeatherCard v-if="currentWeather" :weather="currentWeather" />
       <WeatherForecast
-        v-show="forecast.length > 0"
+        v-if="forecast.length > 0"
         :forecast="forecast"
         :is-updating="isUpdatingForecast"
       />
@@ -39,8 +34,12 @@ import LocationButton from "./LocationButton.vue";
 import WeatherCard from "./WeatherCard.vue";
 import WeatherForecast from "./WeatherForecast.vue";
 import WeatherBackground from "./WeatherBackground.vue";
-import WeatherBackgroundDev from "./WeatherBackground.dev.vue";
-import { getCurrentWeather, getWeatherForecast } from "../lib/weatherApi";
+import {
+  getCurrentWeather,
+  getWeatherForecast,
+  getWeatherByCoords,
+  getWeatherForecastByCoords,
+} from "../lib/weatherApi";
 
 const currentWeather = ref<any>(null);
 const forecast = ref<any[]>([]);
@@ -52,26 +51,44 @@ const currentWeatherType = computed(() => {
   return currentWeather.value.icon || "sunny";
 });
 
-const isDev = computed(() => import.meta.env.DEV);
-
-async function updateWeatherData(weatherData: any) {
-  currentWeather.value = weatherData;
-
-  // Сохраняем местоположение в localStorage
+function saveLocationToStorage(city: string) {
   localStorage.setItem(
     "lastLocation",
     JSON.stringify({
-      city: weatherData.city,
+      city,
       timestamp: Date.now(),
     })
   );
+}
+
+async function loadWeatherData(city: string) {
+  const [weatherData, forecastData] = await Promise.all([
+    getCurrentWeather(city),
+    getWeatherForecast(city, 10),
+  ]);
+
+  currentWeather.value = weatherData;
+  forecast.value = forecastData;
+  saveLocationToStorage(weatherData.city);
+}
+
+async function updateWeatherData(weatherData: any) {
+  currentWeather.value = weatherData;
+  saveLocationToStorage(weatherData.city);
 
   try {
     isUpdatingForecast.value = true;
-    const cityName = weatherData.city;
-    forecast.value = await getWeatherForecast(cityName, 10);
-  } catch (err) {
-    // Ошибка обновления прогноза
+    // Используем координаты для получения прогноза, если они есть
+    if (weatherData.lat && weatherData.lon) {
+      forecast.value = await getWeatherForecastByCoords(
+        weatherData.lat,
+        weatherData.lon,
+        10
+      );
+    } else {
+      // Fallback к названию города
+      forecast.value = await getWeatherForecast(weatherData.city, 10);
+    }
   } finally {
     isUpdatingForecast.value = false;
   }
@@ -79,30 +96,15 @@ async function updateWeatherData(weatherData: any) {
 
 onMounted(async () => {
   try {
-    // Проверяем сохраненное местоположение
     const savedLocation = localStorage.getItem("lastLocation");
     const city = savedLocation ? JSON.parse(savedLocation).city : "Красноярск";
 
-    // Загружаем данные параллельно
-    const [weatherData, forecastData] = await Promise.all([
-      getCurrentWeather(city),
-      getWeatherForecast(city, 10),
-    ]);
-
-    currentWeather.value = weatherData;
-    forecast.value = forecastData;
+    await loadWeatherData(city);
   } catch (err) {
-    // Ошибка загрузки погоды - пробуем Красноярск
     try {
-      const [weatherData, forecastData] = await Promise.all([
-        getCurrentWeather("Красноярск"),
-        getWeatherForecast("Красноярск", 10),
-      ]);
-
-      currentWeather.value = weatherData;
-      forecast.value = forecastData;
+      await loadWeatherData("Красноярск");
     } catch (fallbackErr) {
-      // Ошибка загрузки погоды по умолчанию
+      console.error("Ошибка загрузки погоды по умолчанию:", fallbackErr);
     }
   } finally {
     isInitialLoading.value = false;

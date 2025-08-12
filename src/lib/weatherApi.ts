@@ -72,6 +72,8 @@ export interface ProcessedWeatherData {
   icon: string;
   uv: number;
   isDay: boolean;
+  lat?: number;
+  lon?: number;
 }
 
 export interface ProcessedForecastData {
@@ -287,9 +289,69 @@ export async function getWeatherByCoords(
       icon: getWeatherTypeByCode(data.current.condition.code),
       uv: data.current.uv,
       isDay: data.current.is_day === 1,
+      lat: data.location.lat,
+      lon: data.location.lon,
     };
   } catch (error) {
     console.error("Error fetching weather data by coordinates:", error);
+    throw error;
+  }
+}
+
+export async function getWeatherForecastByCoords(
+  lat: number,
+  lon: number,
+  days: number = 5
+): Promise<ProcessedForecastData[]> {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/forecast.json?key=${API_KEY}&q=${lat},${lon}&days=${days}&aqi=no&alerts=no`
+    );
+
+    if (!response.ok) {
+      handleApiError(response.status);
+    }
+
+    const data: WeatherData = await response.json();
+
+    if (!data.forecast) {
+      throw new Error("No forecast data available");
+    }
+
+    return data.forecast.forecastday.map((day, index) => {
+      const date = new Date(day.date);
+      const dayNames = [
+        "Сегодня",
+        "Завтра",
+        "Послезавтра",
+        "Четверг",
+        "Пятница",
+        "Суббота",
+        "Воскресенье",
+      ];
+      const dayName =
+        index < 3
+          ? dayNames[index]
+          : date.toLocaleDateString("ru-RU", { weekday: "long" });
+
+      const formattedDate = date.toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "long",
+      });
+
+      return {
+        day: dayName,
+        date: day.date,
+        dateFormatted: formattedDate,
+        temp: Math.round(day.day.avgtemp_c),
+        icon: getWeatherTypeByCode(day.day.condition.code),
+        condition: translateWeatherCondition(day.day.condition.text),
+        maxTemp: Math.round(day.day.maxtemp_c),
+        minTemp: Math.round(day.day.mintemp_c),
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching forecast data by coordinates:", error);
     throw error;
   }
 }
