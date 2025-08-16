@@ -1,5 +1,5 @@
 <template>
-  <div class="weather-card neumorphism">
+  <div class="weather-card">
     <!-- Основная информация -->
     <div class="weather-main">
       <div class="weather-info">
@@ -33,44 +33,93 @@
     <!-- Компактные детали -->
     <div class="weather-details">
       <div class="details-row">
-        <div class="detail-item">
-          <div class="detail-icon">💧</div>
-          <div class="detail-text">
-            <span class="detail-value">{{ weather.humidity }}%</span>
-            <span class="detail-label">Влажность</span>
-          </div>
-        </div>
+        <DetailItem
+          v-for="detail in mainDetails"
+          :key="detail.label"
+          :icon="detail.icon"
+          :value="detail.value"
+          :label="detail.label"
+        />
+      </div>
+    </div>
 
-        <div class="detail-item">
-          <div class="detail-icon">💨</div>
-          <div class="detail-text">
-            <span class="detail-value">{{ weather.windSpeed }}</span>
-            <span class="detail-label">км/ч</span>
-          </div>
-        </div>
+    <!-- Кнопка расширенной информации -->
+    <div class="expand-section">
+      <button
+        class="expand-button"
+        @click="isExpanded = !isExpanded"
+        :title="isExpanded ? 'Скрыть детали' : 'Подробнее'"
+      >
+        <span class="expand-icon">{{ isExpanded ? "−" : "⌄" }}</span>
+      </button>
+    </div>
 
-        <div class="detail-item">
-          <div class="detail-icon">🌡️</div>
-          <div class="detail-text">
-            <span class="detail-value">{{ weather.pressure }}</span>
-            <span class="detail-label">гПа</span>
+    <!-- Расширенная информация -->
+    <div class="expanded-details" :class="{ expanded: isExpanded }">
+      <div class="details-grid">
+        <!-- Основные детали -->
+        <DetailCard
+          v-for="(detail, index) in expandedDetails"
+          :key="detail.title"
+          :title="detail.title"
+          :icon="detail.icon"
+          :style="{ '--card-index': index }"
+        >
+          <div
+            v-for="item in detail.items"
+            :key="item.label"
+            class="detail-row"
+          >
+            <span class="detail-label">{{ item.label }}</span>
+            <span class="detail-value">{{ item.value }}</span>
           </div>
-        </div>
+        </DetailCard>
 
-        <div class="detail-item">
-          <div class="detail-icon">☀️</div>
-          <div class="detail-text">
-            <span class="detail-value">{{ weather.uv }}</span>
-            <span class="detail-label">UV</span>
+        <!-- Астрономические данные -->
+        <DetailCard
+          v-if="astronomicalDetails"
+          :title="astronomicalDetails.title"
+          :icon="astronomicalDetails.icon"
+          :style="{ '--card-index': expandedDetails.length }"
+        >
+          <div
+            v-for="item in astronomicalDetails.items"
+            :key="item.label"
+            class="detail-row"
+          >
+            <span class="detail-label">{{ item.label }}</span>
+            <span class="detail-value">{{ item.value }}</span>
           </div>
-        </div>
+        </DetailCard>
+
+        <!-- Луна -->
+        <DetailCard
+          v-if="moonDetails"
+          :title="moonDetails.title"
+          :icon="moonDetails.icon"
+          :style="{
+            '--card-index':
+              expandedDetails.length + (astronomicalDetails ? 1 : 0),
+          }"
+        >
+          <div
+            v-for="item in moonDetails.items"
+            :key="item.label"
+            class="detail-row"
+          >
+            <span class="detail-label">{{ item.label }}</span>
+            <span class="detail-value">{{ item.value }}</span>
+          </div>
+        </DetailCard>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import DetailCard from "./DetailCard.vue";
+import DetailItem from "./DetailItem.vue";
 
 interface WeatherData {
   city: string;
@@ -79,15 +128,35 @@ interface WeatherData {
   icon: string;
   humidity: number;
   windSpeed: number;
+  windDegree: number;
+  windDir: string;
   pressure: number;
   feelsLike: number;
   uv: number;
   isDay: boolean;
+  visibility: number;
+  gustSpeed: number;
+  precipitation: number;
+  cloudCover: number;
+  lat?: number;
+  lon?: number;
+}
+
+interface AstronomicalData {
+  sunrise: string;
+  sunset: string;
+  moonrise: string;
+  moonset: string;
+  moonPhase: string;
+  moonIllumination: number;
 }
 
 const props = defineProps<{
   weather: WeatherData;
+  astro?: AstronomicalData | null;
 }>();
+
+const isExpanded = ref(false);
 
 const weatherIcon = computed(() => {
   const iconMap: Record<string, string> = {
@@ -100,6 +169,99 @@ const weatherIcon = computed(() => {
   };
   return iconMap[props.weather.icon] || "🌤️";
 });
+
+// Массив для основных деталей
+const mainDetails = computed(() => [
+  {
+    icon: "💧",
+    value: `${props.weather.humidity}%`,
+    label: "Влажность",
+  },
+  {
+    icon: "💨",
+    value: props.weather.windSpeed,
+    label: "км/ч",
+  },
+  {
+    icon: "🌡️",
+    value: props.weather.pressure,
+    label: "гПа",
+  },
+  {
+    icon: "☀️",
+    value: props.weather.uv,
+    label: "UV",
+  },
+]);
+
+// Массив для расширенных деталей
+const expandedDetails = computed(() => [
+  {
+    icon: "💨",
+    title: "Ветер",
+    items: [
+      { label: "Направление:", value: props.weather.windDir },
+      { label: "Порывы:", value: `${props.weather.gustSpeed} км/ч` },
+    ],
+  },
+  {
+    icon: "🌫️",
+    title: "Атмосфера",
+    items: [
+      { label: "Видимость:", value: `${props.weather.visibility} км` },
+      { label: "Облачность:", value: `${props.weather.cloudCover}%` },
+    ],
+  },
+  {
+    icon: "🌧️",
+    title: "Осадки",
+    items: [
+      { label: "Количество:", value: `${props.weather.precipitation} мм` },
+    ],
+  },
+]);
+
+// Астрономические данные
+const astronomicalDetails = computed(() => {
+  if (!props.astro) return null;
+
+  return {
+    icon: "☀️",
+    title: "Солнце",
+    items: [
+      { label: "Восход:", value: props.astro.sunrise },
+      { label: "Закат:", value: props.astro.sunset },
+    ],
+  };
+});
+
+const moonDetails = computed(() => {
+  if (!props.astro) return null;
+
+  return {
+    icon: "🌙",
+    title: "Луна",
+    items: [
+      { label: "Фаза:", value: translateMoonPhase(props.astro.moonPhase) },
+      { label: "Освещенность:", value: `${props.astro.moonIllumination}%` },
+    ],
+  };
+});
+
+function translateMoonPhase(phase: string): string {
+  const translations: Record<string, string> = {
+    "New Moon": "Новая",
+    "Waxing Crescent": "Серп",
+    "First Quarter": "1/4",
+    "Waxing Gibbous": "Растущая",
+    "Full Moon": "Полная",
+    "Waning Gibbous": "Убывающая",
+    "Last Quarter": "3/4",
+    "Waning Crescent": "Серп",
+  };
+
+  return translations[phase] || phase;
+}
 </script>
 
 <style scoped>
@@ -107,7 +269,7 @@ const weatherIcon = computed(() => {
   background: var(--bg-secondary);
   border-radius: 20px;
   padding: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   box-shadow: var(--neumorphism);
   position: relative;
   overflow: hidden;
@@ -137,7 +299,7 @@ const weatherIcon = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .weather-info {
@@ -246,7 +408,7 @@ const weatherIcon = computed(() => {
 
 .weather-details {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 15px;
+  padding-top: 10px;
 }
 
 .details-row {
@@ -255,52 +417,104 @@ const weatherIcon = computed(() => {
   gap: 12px;
 }
 
-.detail-item {
+/* Расширенная информация */
+.expand-section {
+  display: flex;
+  justify-content: center;
+}
+
+.expand-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex: 1;
-  padding: 12px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.expand-button:hover {
   background: var(--bg-tertiary);
-  border-radius: 12px;
-  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.2),
-    inset -2px -2px 4px rgba(255, 255, 255, 0.05);
-}
-
-.detail-item:hover {
-  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.25),
-    inset -3px -3px 6px rgba(255, 255, 255, 0.1);
-  background: var(--bg-secondary);
-}
-
-.detail-icon {
-  font-size: 1.4rem;
-  flex-shrink: 0;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-.detail-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.detail-value {
-  font-size: 1.1rem;
-  font-weight: 700;
   color: var(--text-primary);
-  white-space: nowrap;
+  transform: scale(1.1);
+}
+
+.expand-icon {
+  font-size: 1.2rem;
+  font-weight: 600;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.expand-button:hover .expand-icon {
+  transform: scale(1.1);
+}
+
+.expanded-details {
+  display: grid;
+  grid-template-rows: 0fr;
   overflow: hidden;
-  text-overflow: ellipsis;
+  transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.expanded-details.expanded {
+  grid-template-rows: 1fr;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  min-height: 0;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.expanded-details.expanded .details-grid {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.expanded-details.expanded :deep(.detail-card) {
+  animation: cardSlideIn 0.4s ease forwards;
+  animation-delay: calc(var(--card-index, 0) * 0.1s);
+}
+
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Стили для строк в DetailCard */
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
 }
 
 .detail-label {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 /* Адаптивность */

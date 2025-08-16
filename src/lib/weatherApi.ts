@@ -29,6 +29,7 @@ export interface WeatherData {
     lat: number;
     lon: number;
     localtime: string;
+    tz_id: string;
   };
   current: {
     temp_c: number;
@@ -40,9 +41,15 @@ export interface WeatherData {
     };
     humidity: number;
     wind_kph: number;
+    wind_degree: number;
+    wind_dir: string;
     pressure_mb: number;
     uv: number;
     is_day: number;
+    vis_km: number;
+    gust_kph: number;
+    precip_mm: number;
+    cloud: number;
   };
   forecast?: {
     forecastday: Array<{
@@ -51,12 +58,47 @@ export interface WeatherData {
         maxtemp_c: number;
         mintemp_c: number;
         avgtemp_c: number;
+        maxwind_kph: number;
+        totalprecip_mm: number;
+        avghumidity: number;
+        daily_will_it_rain: number;
+        daily_chance_of_rain: number;
         condition: {
           text: string;
           icon: string;
           code: number;
         };
+        uv: number;
       };
+      astro: {
+        sunrise: string;
+        sunset: string;
+        moonrise: string;
+        moonset: string;
+        moon_phase: string;
+        moon_illumination: number;
+        is_moon_up: number;
+        is_sun_up: number;
+      };
+      hour: Array<{
+        time: string;
+        temp_c: number;
+        condition: {
+          text: string;
+          icon: string;
+          code: number;
+        };
+        wind_kph: number;
+        wind_degree: number;
+        wind_dir: string;
+        pressure_mb: number;
+        humidity: number;
+        will_it_rain: number;
+        chance_of_rain: number;
+        vis_km: number;
+        uv: number;
+        is_day: number;
+      }>;
     }>;
   };
 }
@@ -68,10 +110,16 @@ export interface ProcessedWeatherData {
   condition: string;
   humidity: number;
   windSpeed: number;
+  windDegree: number;
+  windDir: string;
   pressure: number;
   icon: string;
   uv: number;
   isDay: boolean;
+  visibility: number;
+  gustSpeed: number;
+  precipitation: number;
+  cloudCover: number;
   lat?: number;
   lon?: number;
 }
@@ -84,6 +132,34 @@ export interface ProcessedForecastData {
   condition: string;
   maxTemp: number;
   minTemp: number;
+  maxWind: number;
+  totalPrecip: number;
+  avgHumidity: number;
+  willItRain: boolean;
+  chanceOfRain: number;
+  uv: number;
+  astro: {
+    sunrise: string;
+    sunset: string;
+    moonrise: string;
+    moonset: string;
+    moonPhase: string;
+    moonIllumination: number;
+  };
+  hourly: Array<{
+    time: string;
+    temp: number;
+    condition: string;
+    icon: string;
+    windSpeed: number;
+    windDir: string;
+    humidity: number;
+    willItRain: boolean;
+    chanceOfRain: number;
+    visibility: number;
+    uv: number;
+    isDay: boolean;
+  }>;
 }
 
 // Удаляем неиспользуемую функцию
@@ -160,14 +236,14 @@ const translateWeatherCondition = (text: string): string => {
 };
 
 const getWeatherTypeByCode = (code: number): string => {
-  if (code >= 1000 && code <= 1003) return "sunny";
-  if (code >= 1006 && code <= 1009) return "cloudy";
-  if (code === 1030) return "foggy";
-  if (code >= 1063 && code <= 1087) return "rainy";
-  if (code >= 1114 && code <= 1117) return "snowy";
-  if (code >= 1135 && code <= 1147) return "foggy";
-  if (code >= 1150 && code <= 1282) return "rainy";
-  return "cloudy";
+  if (code >= 1000 && code <= 1003) return "☀️";
+  if (code >= 1006 && code <= 1009) return "☁️";
+  if (code === 1030) return "🌫️";
+  if (code >= 1063 && code <= 1087) return "🌧️";
+  if (code >= 1114 && code <= 1117) return "❄️";
+  if (code >= 1135 && code <= 1147) return "🌫️";
+  if (code >= 1150 && code <= 1282) return "🌧️";
+  return "☁️";
 };
 
 export async function getCurrentWeather(
@@ -193,10 +269,16 @@ export async function getCurrentWeather(
       condition: translateWeatherCondition(data.current.condition.text),
       humidity: data.current.humidity,
       windSpeed: Math.round(data.current.wind_kph),
+      windDegree: data.current.wind_degree,
+      windDir: data.current.wind_dir,
       pressure: data.current.pressure_mb,
       icon: getWeatherTypeByCode(data.current.condition.code),
       uv: data.current.uv,
       isDay: data.current.is_day === 1,
+      visibility: data.current.vis_km,
+      gustSpeed: Math.round(data.current.gust_kph),
+      precipitation: data.current.precip_mm,
+      cloudCover: data.current.cloud,
     };
   } catch (error) {
     console.error("Error fetching weather data:", error);
@@ -246,15 +328,46 @@ export async function getWeatherForecast(
         month: "long",
       });
 
+      // Обрабатываем почасовые данные
+      const hourly = day.hour.map((hour) => ({
+        time: hour.time,
+        temp: Math.round(hour.temp_c),
+        condition: translateWeatherCondition(hour.condition.text),
+        icon: getWeatherTypeByCode(hour.condition.code),
+        windSpeed: Math.round(hour.wind_kph),
+        windDir: hour.wind_dir,
+        humidity: hour.humidity,
+        willItRain: hour.will_it_rain === 1,
+        chanceOfRain: hour.chance_of_rain,
+        visibility: hour.vis_km,
+        uv: hour.uv,
+        isDay: hour.is_day === 1,
+      }));
+
       return {
         day: dayName,
-        date: day.date, // Передаем оригинальную дату YYYY-MM-DD
-        dateFormatted: formattedDate, // Отформатированная дата для отображения
+        date: day.date,
+        dateFormatted: formattedDate,
         temp: Math.round(day.day.avgtemp_c),
         icon: getWeatherTypeByCode(day.day.condition.code),
         condition: translateWeatherCondition(day.day.condition.text),
         maxTemp: Math.round(day.day.maxtemp_c),
         minTemp: Math.round(day.day.mintemp_c),
+        maxWind: Math.round(day.day.maxwind_kph),
+        totalPrecip: day.day.totalprecip_mm,
+        avgHumidity: day.day.avghumidity,
+        willItRain: day.day.daily_will_it_rain === 1,
+        chanceOfRain: day.day.daily_chance_of_rain,
+        uv: day.day.uv,
+        astro: {
+          sunrise: day.astro.sunrise,
+          sunset: day.astro.sunset,
+          moonrise: day.astro.moonrise,
+          moonset: day.astro.moonset,
+          moonPhase: day.astro.moon_phase,
+          moonIllumination: day.astro.moon_illumination,
+        },
+        hourly,
       };
     });
   } catch (error) {
@@ -285,10 +398,16 @@ export async function getWeatherByCoords(
       condition: translateWeatherCondition(data.current.condition.text),
       humidity: data.current.humidity,
       windSpeed: Math.round(data.current.wind_kph),
+      windDegree: data.current.wind_degree,
+      windDir: data.current.wind_dir,
       pressure: data.current.pressure_mb,
       icon: getWeatherTypeByCode(data.current.condition.code),
       uv: data.current.uv,
       isDay: data.current.is_day === 1,
+      visibility: data.current.vis_km,
+      gustSpeed: Math.round(data.current.gust_kph),
+      precipitation: data.current.precip_mm,
+      cloudCover: data.current.cloud,
       lat: data.location.lat,
       lon: data.location.lon,
     };
@@ -339,6 +458,22 @@ export async function getWeatherForecastByCoords(
         month: "long",
       });
 
+      // Обрабатываем почасовые данные
+      const hourly = day.hour.map((hour) => ({
+        time: hour.time,
+        temp: Math.round(hour.temp_c),
+        condition: translateWeatherCondition(hour.condition.text),
+        icon: getWeatherTypeByCode(hour.condition.code),
+        windSpeed: Math.round(hour.wind_kph),
+        windDir: hour.wind_dir,
+        humidity: hour.humidity,
+        willItRain: hour.will_it_rain === 1,
+        chanceOfRain: hour.chance_of_rain,
+        visibility: hour.vis_km,
+        uv: hour.uv,
+        isDay: hour.is_day === 1,
+      }));
+
       return {
         day: dayName,
         date: day.date,
@@ -348,10 +483,48 @@ export async function getWeatherForecastByCoords(
         condition: translateWeatherCondition(day.day.condition.text),
         maxTemp: Math.round(day.day.maxtemp_c),
         minTemp: Math.round(day.day.mintemp_c),
+        maxWind: Math.round(day.day.maxwind_kph),
+        totalPrecip: day.day.totalprecip_mm,
+        avgHumidity: day.day.avghumidity,
+        willItRain: day.day.daily_will_it_rain === 1,
+        chanceOfRain: day.day.daily_chance_of_rain,
+        uv: day.day.uv,
+        astro: {
+          sunrise: day.astro.sunrise,
+          sunset: day.astro.sunset,
+          moonrise: day.astro.moonrise,
+          moonset: day.astro.moonset,
+          moonPhase: day.astro.moon_phase,
+          moonIllumination: day.astro.moon_illumination,
+        },
+        hourly,
       };
     });
   } catch (error) {
     console.error("Error fetching forecast data by coordinates:", error);
+    throw error;
+  }
+}
+
+export async function getFullWeatherData(
+  city: string,
+  days: number = 3
+): Promise<any> {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/forecast.json?key=${API_KEY}&q=${encodeURIComponent(
+        city
+      )}&days=${days}&aqi=no&alerts=no`
+    );
+
+    if (!response.ok) {
+      handleApiError(response.status);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching full weather data:", error);
     throw error;
   }
 }

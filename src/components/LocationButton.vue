@@ -127,44 +127,27 @@ async function getLocation() {
   font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
-  box-shadow: var(--neumorphism);
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.2),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.05);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
   height: 44px;
-}
-
-.location-button::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  transition: left 0.5s ease;
-}
-
-.location-button:hover::before {
-  left: 100%;
+  transition: all 0.3s ease;
 }
 
 .location-button:hover:not(:disabled) {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
-  background: var(--bg-tertiary);
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.25),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.1);
+  background: var(--bg-secondary);
 }
 
 .location-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: inset var(--shadow-light), inset var(--shadow-dark);
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.1);
+  background: var(--bg-primary);
 }
 
 .location-button:disabled {

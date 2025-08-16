@@ -24,8 +24,23 @@
               <span class="date-day">{{ getDayName(day) }}</span>
               <span class="date-full">{{ getDateFull(day) }}</span>
             </div>
-            <div class="forecast-icon">
-              {{ getWeatherIcon(day.icon) }}
+            <div class="forecast-icon-section">
+              <div class="forecast-icon">
+                {{ getWeatherIcon(day.icon) }}
+              </div>
+              <!-- Кнопка деталей -->
+              <button
+                class="details-toggle"
+                :class="{ active: selectedDay === day.date }"
+                @click="toggleDayDetails(day.date)"
+                :title="
+                  selectedDay === day.date ? 'Скрыть детали' : 'Подробнее'
+                "
+              >
+                <span class="toggle-icon">{{
+                  selectedDay === day.date ? "−" : "⌄"
+                }}</span>
+              </button>
             </div>
           </div>
 
@@ -40,24 +55,159 @@
         </div>
       </div>
     </div>
+
+    <!-- Почасовая погода для выбранного дня (только на десктопе) -->
+    <div
+      v-if="selectedDayData && hourlyData.length > 0 && !isMobile"
+      class="selected-day-details"
+    >
+      <div class="hourly-forecast">
+        <div class="hourly-header">
+          <h3 class="hourly-title">Почасовая погода</h3>
+          <div class="hourly-subtitle">{{ getDayName(selectedDayData) }}</div>
+        </div>
+        <div class="hourly-container">
+          <HourlyCard
+            v-for="hour in hourlyData"
+            :key="hour.time"
+            :time="hour.time"
+            :temp="hour.temp"
+            :icon="hour.icon"
+            :chance-of-rain="hour.chanceOfRain"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно для мобильных -->
+    <HourlyModal
+      :is-open="isModalOpen"
+      :day-name="selectedDayData ? getDayName(selectedDayData) : ''"
+      :hourly-data="hourlyData"
+      @close="closeModal"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import HourlyModal from "./HourlyModal.vue";
+import HourlyCard from "./HourlyCard.vue";
+
 interface ForecastDay {
   date: string;
-  dateFormatted: string;
   day: string;
+  temp: number;
   maxTemp: number;
   minTemp: number;
   condition: string;
   icon: string;
+  maxWind: number;
+  totalPrecip: number;
+  avgHumidity: number;
+  willItRain: boolean;
+  chanceOfRain: number;
+  uv: number;
+  astro: {
+    sunrise: string;
+    sunset: string;
+    moonrise: string;
+    moonset: string;
+    moonPhase: string;
+    moonIllumination: number;
+  };
+  hourly: Array<{
+    time: string;
+    temp: number;
+    condition: string;
+    icon: string;
+    windSpeed: number;
+    windDir: string;
+    humidity: number;
+    willItRain: boolean;
+    chanceOfRain: number;
+    visibility: number;
+    uv: number;
+    isDay: boolean;
+  }>;
 }
 
 const props = defineProps<{
   forecast: ForecastDay[];
   isUpdating?: boolean;
 }>();
+
+const selectedDay = ref<string | null>(null);
+const isModalOpen = ref(false);
+const isMobile = ref(false);
+
+// Определяем размер экрана
+onMounted(() => {
+  isMobile.value = window.innerWidth <= 768;
+  const handleResize = () => {
+    isMobile.value = window.innerWidth <= 768;
+  };
+  window.addEventListener("resize", handleResize);
+
+  onUnmounted(() => {
+    window.removeEventListener("resize", handleResize);
+  });
+});
+
+const selectedDayData = computed(() => {
+  if (!selectedDay.value) return null;
+  return props.forecast.find((day) => day.date === selectedDay.value);
+});
+
+const hourlyData = computed(() => {
+  if (!selectedDayData.value?.hourly) return [];
+
+  return selectedDayData.value.hourly.map((hour) => ({
+    time: hour.time,
+    temp: hour.temp,
+    icon: hour.icon,
+    chanceOfRain: hour.chanceOfRain,
+  }));
+});
+
+function toggleDayDetails(date: string) {
+  if (selectedDay.value === date) {
+    selectedDay.value = null;
+    isModalOpen.value = false;
+  } else {
+    selectedDay.value = date;
+
+    // На мобильных открываем модальное окно
+    if (isMobile.value) {
+      isModalOpen.value = true;
+    } else {
+      // На десктопе показываем встроенную почасовую погоду
+      setTimeout(() => {
+        const detailsElement = document.querySelector(".selected-day-details");
+        if (detailsElement) {
+          detailsElement.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        }
+      }, 100);
+    }
+  }
+}
+
+function closeModal() {
+  isModalOpen.value = false;
+  selectedDay.value = null;
+}
+
+function formatTime(timeString: string): string {
+  const date = new Date(timeString);
+  return date.toLocaleTimeString("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
 
 function getWeatherIcon(icon: string): string {
   const iconMap: Record<string, string> = {
@@ -86,7 +236,7 @@ function getDateFull(day: ForecastDay): string {
 
 <style scoped>
 .forecast-section {
-  margin-bottom: 20px;
+  margin: 20px 0;
 }
 
 .section-header {
@@ -169,7 +319,8 @@ function getDateFull(day: ForecastDay): string {
   background: var(--bg-secondary);
   border-radius: 16px;
   padding: 16px;
-  box-shadow: var(--neumorphism);
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.2),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.05);
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -177,6 +328,7 @@ function getDateFull(day: ForecastDay): string {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  transition: all 0.3s ease;
 }
 
 .forecast-card::before {
@@ -196,9 +348,9 @@ function getDateFull(day: ForecastDay): string {
 }
 
 .forecast-card:hover {
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
-  background: var(--bg-tertiary);
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.25),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.1);
+  background: var(--bg-secondary);
 }
 
 .forecast-card:hover::before {
@@ -239,6 +391,12 @@ function getDateFull(day: ForecastDay): string {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--accent-primary);
+}
+
+.forecast-icon-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .forecast-icon {
@@ -345,13 +503,137 @@ function getDateFull(day: ForecastDay): string {
   .date-day {
     font-size: 0.7rem;
   }
+}
 
-  .date-full {
-    font-size: 0.8rem;
+/* Кнопка деталей */
+.details-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.details-toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.details-toggle.active {
+  background: var(--accent-primary);
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.toggle-icon {
+  font-size: 1rem;
+  font-weight: 600;
+  transition: transform 0.3s ease;
+}
+
+/* Почасовая погода для выбранного дня */
+.selected-day-details {
+  margin-top: 20px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hourly-forecast {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.2),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.05);
+}
+
+.hourly-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.hourly-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.hourly-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.hourly-container {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-tertiary) transparent;
+}
+
+.hourly-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.hourly-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hourly-container::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .selected-day-details {
+    margin-top: 12px;
   }
 
-  .forecast-condition {
+  .hourly-forecast {
+    padding: 8px;
+  }
+
+  .hourly-header {
+    margin-bottom: 8px;
+  }
+
+  .hourly-title {
+    font-size: 0.9rem;
+  }
+
+  .hourly-subtitle {
     font-size: 0.7rem;
+  }
+
+  .hourly-container {
+    gap: 4px;
+  }
+
+  .hour-rain {
+    font-size: 0.5rem;
+  }
+
+  .rain-icon {
+    font-size: 0.6rem;
   }
 }
 
@@ -388,6 +670,32 @@ function getDateFull(day: ForecastDay): string {
 
   .date-full {
     font-size: 0.8rem;
+  }
+
+  /* Еще более компактная почасовая погода */
+  .hourly-item {
+    min-width: 40px;
+    padding: 4px 2px;
+  }
+
+  .weather-emoji {
+    font-size: 12px;
+  }
+
+  .hour-temp {
+    font-size: 0.7rem;
+  }
+
+  .hour-time {
+    font-size: 0.5rem;
+  }
+
+  .hour-rain {
+    font-size: 0.45rem;
+  }
+
+  .rain-icon {
+    font-size: 0.55rem;
   }
 }
 </style>

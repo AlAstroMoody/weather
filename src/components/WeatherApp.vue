@@ -18,7 +18,11 @@
     </div>
 
     <template v-else>
-      <WeatherCard v-if="currentWeather" :weather="currentWeather" />
+      <WeatherCard
+        v-if="currentWeather"
+        :weather="currentWeather"
+        :astro="forecast.length > 0 ? forecast[0].astro : null"
+      />
       <WeatherForecast
         v-if="forecast.length > 0"
         :forecast="forecast"
@@ -39,6 +43,8 @@ import {
   getWeatherForecast,
   getWeatherByCoords,
   getWeatherForecastByCoords,
+  type ProcessedWeatherData,
+  type ProcessedForecastData,
 } from "../lib/weatherApi";
 
 const currentWeather = ref<any>(null);
@@ -47,8 +53,7 @@ const isUpdatingForecast = ref(false);
 const isInitialLoading = ref(true);
 
 const currentWeatherType = computed(() => {
-  if (!currentWeather.value) return "sunny";
-  return currentWeather.value.icon || "sunny";
+  return currentWeather.value?.icon || "sunny";
 });
 
 function saveLocationToStorage(city: string) {
